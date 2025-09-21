@@ -1,0 +1,1 @@
+"""MCP Chart Generator package."""

@@ -3,11 +3,7 @@
 Simple test script to verify chart generation functionality.
 """
 
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from tools import ChartRequest
+from mcp_chart_generator.tools import ChartRequest
 import altair as alt
 
 # Sample Vega-Lite specification with embedded data

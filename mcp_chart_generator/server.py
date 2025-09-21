@@ -14,7 +14,7 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent
 
-from tools import (
+from .tools import (
     ChartRequest,
     DEFAULT_OUTPUT_DIR,
     DEFAULT_WIDTH,
@@ -87,15 +87,18 @@ async def call_tool(name: str, arguments: dict):
         return [TextContent(type="text", text=f"Error generating chart: {str(e)}")]
 
 
-async def main():
+def main():
     """Main entry point for the server."""
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream, write_stream, server.create_initialization_options()
-        )
+    import asyncio
+
+    async def run_server():
+        async with stdio_server() as (read_stream, write_stream):
+            await server.run(
+                read_stream, write_stream, server.create_initialization_options()
+            )
+
+    asyncio.run(run_server())
 
 
 if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
+    main()

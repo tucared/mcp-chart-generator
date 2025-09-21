@@ -18,7 +18,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["."]
+packages = ["mcp_chart_generator"]
 
 [project.scripts]
-mcp-chart-generator = "server:main"
+mcp-chart-generator = "mcp_chart_generator.server:main"
