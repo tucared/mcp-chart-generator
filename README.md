@@ -6,3 +6,11 @@ generate charts that are saved to file artefacts for versionning and auditing ca
 This MCP server is built in Python using Vega-Altair library, so it can use Vega-Lite syntax.
 
 A single tool call creates a folder where are saved : Input data, Vega-Lite specification and output chart.
+
+## Editing the server
+
+Install pre-commits
+
+```shell
+uv run pre-commit install
+```
