@@ -7,6 +7,60 @@ This MCP server is built in Python using Vega-Altair library, so it can use Vega
 
 A single tool call creates a folder where are saved : Input data, Vega-Lite specification and output chart.
 
+## Installation & Configuration
+
+### Using uvx (Recommended)
+
+Add this to your MCP configuration file:
+
+```json
+{
+  "mcpServers": {
+    "mcp-chart-generator": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/tucared/mcp-chart-generator",
+        "mcp-chart-generator"
+      ]
+    }
+  }
+}
+```
+
+### Alternative: Local Development Setup
+
+For local development or if you prefer to clone the repository:
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/tucared/mcp-chart-generator
+   cd mcp-chart-generator
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   uv sync
+   ```
+
+3. Add to MCP config:
+
+   ```json
+   {
+     "mcpServers": {
+       "mcp-chart-generator": {
+         "command": "uv",
+         "args": ["run", "/absolute/path/to/mcp-chart-generator/server.py"],
+         "cwd": "/absolute/path/to/mcp-chart-generator"
+       }
+     }
+   }
+   ```
+
+**Note**: Replace `/absolute/path/to/mcp-chart-generator` with your actual path.
+
 ## Contributing
 
 ### Setup
