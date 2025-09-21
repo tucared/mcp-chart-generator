@@ -331,7 +331,7 @@ cli = [
 [[package]]
 name = "mcp-chart-generator"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "altair" },
     { name = "mcp", extra = ["cli"] },
