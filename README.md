@@ -14,3 +14,9 @@ Install pre-commits
 ```shell
 uv run pre-commit install
 ```
+
+## Acknowledgment
+
+I wanna give a shout to [Issac Wasserman](https://github.com/isaacwasserman) who created a very similar MCP ([mcp-vegalite-server](https://github.com/isaacwasserman/mcp-vegalite-server/tree/main))
+where essentially graphs are non persistent, where the present implementation focuses
+on making implementation persist as artefacts in the repo.
