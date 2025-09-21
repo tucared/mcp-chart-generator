@@ -7,6 +7,14 @@ repos:
       - id: check-added-large-files
       - id: check-yaml
       - id: check-toml
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.13.1
+    hooks:
+      # Run the linter.
+      - id: ruff-check
+        args: [ --fix ]
+      # Run the formatter.
+      - id: ruff-format
   - repo: https://github.com/astral-sh/uv-pre-commit
     # uv version.
     rev: 0.8.19
@@ -17,3 +25,9 @@ repos:
     hooks:
       - id: markdownlint-cli2
         args: ["**/*.md"]
+  - repo: local
+    hooks:
+      - id: ty
+        name: Type Check
+        entry: uv run ty check .
+        language: system
