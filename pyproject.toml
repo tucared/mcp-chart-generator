@@ -1,0 +1,7 @@
+[project]
+name = "mcp-chart-generator"
+version = "0.1.0"
+requires-python = ">=3.13.5"
+dependencies = [
+    "mcp[cli]>=1.14.1",
+]
