@@ -17,8 +17,6 @@ from mcp.types import TextContent
 from .tools import (
     ChartRequest,
     DEFAULT_OUTPUT_DIR,
-    DEFAULT_WIDTH,
-    DEFAULT_HEIGHT,
     get_tool_definitions,
 )
 
@@ -62,13 +60,6 @@ async def call_tool(name: str, arguments: dict):
 
         # Create Altair chart from Vega-Lite spec
         chart = alt.Chart.from_dict(request.vega_lite_spec)
-
-        # Apply dimensions if provided
-        if request.width or request.height:
-            chart = chart.resolve_scale(color="independent").properties(
-                width=request.width or DEFAULT_WIDTH,
-                height=request.height or DEFAULT_HEIGHT,
-            )
 
         # Save the chart as PNG
         chart.save(str(output_path))

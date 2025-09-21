@@ -9,8 +9,6 @@ from pydantic import BaseModel, Field
 
 # Server configuration
 DEFAULT_OUTPUT_DIR = Path.cwd() / "tests"
-DEFAULT_WIDTH = 400
-DEFAULT_HEIGHT = 300
 
 
 class ChartRequest(BaseModel):
@@ -22,8 +20,6 @@ class ChartRequest(BaseModel):
     output_path: Optional[str] = Field(
         default=None, description="Output file path (defaults to server config)"
     )
-    width: Optional[int] = Field(default=None, description="Chart width in pixels")
-    height: Optional[int] = Field(default=None, description="Chart height in pixels")
 
 
 def get_tool_definitions() -> list[Tool]:
@@ -42,14 +38,6 @@ def get_tool_definitions() -> list[Tool]:
                     "output_path": {
                         "type": "string",
                         "description": "Optional output file path (defaults to server config)",
-                    },
-                    "width": {
-                        "type": "integer",
-                        "description": "Optional chart width in pixels",
-                    },
-                    "height": {
-                        "type": "integer",
-                        "description": "Optional chart height in pixels",
                     },
                 },
                 "required": ["vega_lite_spec"],

@@ -53,8 +53,6 @@ def test_chart_request_validation():
         ChartRequest(
             vega_lite_spec=sample_spec,
             output_path="tests/test_output.png",
-            width=500,
-            height=400,
         )
         print("✅ ChartRequest validation test passed!")
         return True
