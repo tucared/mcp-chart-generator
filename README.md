@@ -25,6 +25,20 @@ To inspect the MCP server, use the dedicated tool:
 npx @modelcontextprotocol/inspector uv run server.py
 ```
 
+### Testing
+
+To verify the MCP server functionality, run the test:
+
+```shell
+uv run tests/test_chart_generate.py
+```
+
+The test verify:
+
+- Basic chart generation from Vega-Lite specifications
+- Request model validation
+- PNG export functionality
+
 ## Acknowledgment
 
 I wanna give a shout to [Issac Wasserman](https://github.com/isaacwasserman) who created a very similar MCP ([mcp-vegalite-server](https://github.com/isaacwasserman/mcp-vegalite-server/tree/main))
