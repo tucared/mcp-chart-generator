@@ -6,6 +6,7 @@ A Model Context Protocol server that generates PNG charts from Vega-Lite specifi
 """
 
 import argparse
+import json
 import logging
 import sys
 from pathlib import Path
@@ -77,12 +78,18 @@ async def call_tool(name: str, arguments: dict):
         # Save the chart as PNG
         chart.save(str(output_path))
 
+        # Save the Vega-Lite spec as JSON
+        json_path = output_path.parent / "vega_lite_spec.json"
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(vega_spec, f, indent=2, ensure_ascii=False)
+
         logger.info(f"Successfully generated chart: {output_path}")
+        logger.info(f"Successfully saved Vega-Lite spec: {json_path}")
 
         return [
             TextContent(
                 type="text",
-                text=f"Chart successfully generated and saved to: {output_path.absolute()}",
+                text=f"Chart successfully generated and saved to: {output_path.absolute()}\nVega-Lite specification saved to: {json_path.absolute()}",
             )
         ]
 

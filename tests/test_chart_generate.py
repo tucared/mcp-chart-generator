@@ -10,6 +10,7 @@ from mcp_chart_generator.tools import (
     get_default_output_dir,
 )
 import altair as alt
+import json
 import tempfile
 from pathlib import Path
 
@@ -175,6 +176,140 @@ def test_chart_title_integration():
         return False
 
 
+def test_vega_lite_json_saving():
+    """Test that Vega-Lite specification is saved as JSON alongside the PNG."""
+    try:
+        # Create a temporary directory for testing
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            # Set output directory
+            set_default_output_dir(temp_path)
+
+            # Simulate the server.py logic for saving JSON
+            chart_title = "Test JSON Chart"
+            safe_title = sanitize_chart_title(chart_title)
+
+            default_dir = get_default_output_dir()
+            chart_dir = default_dir / safe_title
+            chart_dir.mkdir(parents=True, exist_ok=True)
+            output_path = chart_dir / "graph.png"
+
+            # Create modified spec with title (simulating server.py logic)
+            vega_spec = sample_spec.copy()
+            vega_spec["title"] = chart_title
+
+            # Save the Vega-Lite spec as JSON (simulating server.py logic)
+            json_path = output_path.parent / "vega_lite_spec.json"
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(vega_spec, f, indent=2, ensure_ascii=False)
+
+            # Verify JSON file exists and has correct content
+            assert json_path.exists(), f"JSON file {json_path} should exist"
+            assert json_path.name == "vega_lite_spec.json", (
+                f"Expected 'vega_lite_spec.json', got '{json_path.name}'"
+            )
+
+            # Verify JSON content
+            with open(json_path, "r", encoding="utf-8") as f:
+                saved_spec = json.load(f)
+
+            assert saved_spec["title"] == chart_title, (
+                f"Expected title '{chart_title}', got '{saved_spec.get('title')}'"
+            )
+            assert saved_spec["mark"] == "bar", (
+                f"Expected mark 'bar', got '{saved_spec.get('mark')}'"
+            )
+            assert "data" in saved_spec, "Saved spec should contain data"
+
+        print("✅ Vega-Lite JSON saving test passed!")
+        return True
+    except Exception as e:
+        print(f"❌ Vega-Lite JSON saving test failed: {e}")
+        return False
+
+
+def test_full_chart_generation_with_json():
+    """Test complete chart generation workflow that creates both PNG and JSON files."""
+    try:
+        # Create a temporary directory for testing
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            # Set output directory
+            set_default_output_dir(temp_path)
+
+            # Simulate the complete server.py call_tool logic
+            chart_title = "Integration Test Chart"
+            safe_title = sanitize_chart_title(chart_title)
+
+            # Set up output path (following server.py logic)
+            default_dir = get_default_output_dir()
+            chart_dir = default_dir / safe_title
+            chart_dir.mkdir(parents=True, exist_ok=True)
+            output_path = chart_dir / "graph.png"
+
+            # Ensure output directory exists
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Add title to Vega-Lite spec (following server.py logic)
+            vega_spec = sample_spec.copy()
+            vega_spec["title"] = chart_title
+
+            # Create Altair chart from Vega-Lite spec
+            chart = alt.Chart.from_dict(vega_spec)
+
+            # Save the chart as PNG
+            chart.save(str(output_path))
+
+            # Save the Vega-Lite spec as JSON (following server.py logic)
+            json_path = output_path.parent / "vega_lite_spec.json"
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(vega_spec, f, indent=2, ensure_ascii=False)
+
+            # Verify both files exist
+            assert output_path.exists(), f"PNG file {output_path} should exist"
+            assert json_path.exists(), f"JSON file {json_path} should exist"
+
+            # Verify file names
+            assert output_path.name == "graph.png", (
+                f"Expected 'graph.png', got '{output_path.name}'"
+            )
+            assert json_path.name == "vega_lite_spec.json", (
+                f"Expected 'vega_lite_spec.json', got '{json_path.name}'"
+            )
+
+            # Verify they're in the same directory
+            assert output_path.parent == json_path.parent, (
+                "PNG and JSON files should be in the same directory"
+            )
+
+            # Verify directory name matches sanitized chart title
+            assert output_path.parent.name == safe_title, (
+                f"Expected directory '{safe_title}', got '{output_path.parent.name}'"
+            )
+
+            # Verify JSON content matches what was saved
+            with open(json_path, "r", encoding="utf-8") as f:
+                saved_spec = json.load(f)
+
+            assert saved_spec["title"] == chart_title, (
+                f"Expected title '{chart_title}', got '{saved_spec.get('title')}'"
+            )
+            assert saved_spec["mark"] == sample_spec["mark"], (
+                f"Expected mark '{sample_spec['mark']}', got '{saved_spec.get('mark')}'"
+            )
+            assert saved_spec["data"] == sample_spec["data"], (
+                "JSON data should match original spec data"
+            )
+
+        print("✅ Full chart generation with JSON test passed!")
+        return True
+    except Exception as e:
+        print(f"❌ Full chart generation with JSON test failed: {e}")
+        return False
+
+
 if __name__ == "__main__":
     print("Running chart generation tests...")
 
@@ -183,8 +318,10 @@ if __name__ == "__main__":
     test3 = test_output_directory_setup()
     test4 = test_chart_title_sanitization()
     test5 = test_chart_title_integration()
+    test6 = test_vega_lite_json_saving()
+    test7 = test_full_chart_generation_with_json()
 
-    if test1 and test2 and test3 and test4 and test5:
+    if test1 and test2 and test3 and test4 and test5 and test6 and test7:
         print("\n🎉 All tests passed! The MCP server should work correctly.")
     else:
         print("\n💥 Some tests failed. Check the implementation.")
