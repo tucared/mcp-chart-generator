@@ -52,7 +52,12 @@ For local development or if you prefer to clone the repository:
      "mcpServers": {
        "mcp-chart-generator": {
          "command": "uv",
-         "args": ["run", "/absolute/path/to/mcp-chart-generator/server.py"],
+         "args": [
+            "--directory",
+            "/absolute/path/to/mcp-chart-generator",
+            "run",
+            "mcp-chart-generator"
+          ],
          "cwd": "/absolute/path/to/mcp-chart-generator"
        }
      }
@@ -76,7 +81,7 @@ uv run pre-commit install
 To inspect the MCP server, use the dedicated tool:
 
 ```shell
-npx @modelcontextprotocol/inspector uv run server.py
+npx @modelcontextprotocol/inspector uv run mcp-chart-generator
 ```
 
 ### Testing
