@@ -5,6 +5,7 @@ Simple test script to verify chart generation functionality.
 
 from mcp_chart_generator.tools import (
     ChartRequest,
+    sanitize_chart_title,
     set_default_output_dir,
     get_default_output_dir,
 )
@@ -57,6 +58,7 @@ def test_chart_request_validation():
     try:
         # Valid request
         ChartRequest(
+            chart_title="Test Chart",
             vega_lite_spec=sample_spec,
             output_path="tests/test_output.png",
         )
@@ -111,14 +113,78 @@ def test_output_directory_setup():
         return False
 
 
+def test_chart_title_sanitization():
+    """Test that chart title sanitization works correctly."""
+    try:
+        # Test various problematic titles
+        test_cases = [
+            ("Normal Title", "Normal_Title"),
+            ("Title with spaces", "Title_with_spaces"),
+            ("Title/with\\invalid:chars", "Title_with_invalid_chars"),
+            ("Title<>:|?*chars", "Title_chars"),
+            ("", "untitled_chart"),
+            ("   ", "untitled_chart"),
+            ("Title   with    multiple   spaces", "Title_with_multiple_spaces"),
+        ]
+
+        for input_title, expected in test_cases:
+            result = sanitize_chart_title(input_title)
+            assert result == expected, (
+                f"Expected '{expected}', got '{result}' for input '{input_title}'"
+            )
+
+        print("✅ Chart title sanitization test passed!")
+        return True
+    except Exception as e:
+        print(f"❌ Chart title sanitization test failed: {e}")
+        return False
+
+
+def test_chart_title_integration():
+    """Test that chart title is properly integrated into directory structure."""
+    try:
+        # Create a temporary directory for testing
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            # Set output directory
+            set_default_output_dir(temp_path)
+
+            # Test chart title integration (simulating server.py logic)
+            chart_title = "My Test Chart!"
+            safe_title = sanitize_chart_title(chart_title)
+
+            default_dir = get_default_output_dir()
+            chart_dir = default_dir / safe_title
+            chart_dir.mkdir(parents=True, exist_ok=True)
+            output_path = chart_dir / "graph.png"
+
+            # Verify directory structure
+            assert chart_dir.exists(), f"Chart directory {chart_dir} should exist"
+            assert chart_dir.name == "My_Test_Chart", (
+                f"Expected 'My_Test_Chart', got '{chart_dir.name}'"
+            )
+            assert output_path.name == "graph.png", (
+                f"Expected 'graph.png', got '{output_path.name}'"
+            )
+
+        print("✅ Chart title integration test passed!")
+        return True
+    except Exception as e:
+        print(f"❌ Chart title integration test failed: {e}")
+        return False
+
+
 if __name__ == "__main__":
     print("Running chart generation tests...")
 
     test1 = test_chart_request_validation()
     test2 = test_basic_chart_generation()
     test3 = test_output_directory_setup()
+    test4 = test_chart_title_sanitization()
+    test5 = test_chart_title_integration()
 
-    if test1 and test2 and test3:
+    if test1 and test2 and test3 and test4 and test5:
         print("\n🎉 All tests passed! The MCP server should work correctly.")
     else:
         print("\n💥 Some tests failed. Check the implementation.")

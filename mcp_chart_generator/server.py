@@ -18,6 +18,7 @@ from mcp.types import TextContent
 from .tools import (
     ChartRequest,
     get_tool_definitions,
+    sanitize_chart_title,
     set_default_output_dir,
 )
 
@@ -49,6 +50,9 @@ async def call_tool(name: str, arguments: dict):
         # Parse and validate the request
         request = ChartRequest(**arguments)
 
+        # Sanitize chart title for directory name
+        safe_title = sanitize_chart_title(request.chart_title)
+
         # Set up output path
         if request.output_path:
             output_path = Path(request.output_path)
@@ -56,14 +60,19 @@ async def call_tool(name: str, arguments: dict):
             from .tools import get_default_output_dir
 
             default_dir = get_default_output_dir()
-            default_dir.mkdir(exist_ok=True)
-            output_path = default_dir / "chart.png"
+            chart_dir = default_dir / safe_title
+            chart_dir.mkdir(parents=True, exist_ok=True)
+            output_path = chart_dir / "graph.png"
 
         # Ensure output directory exists
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
+        # Add title to Vega-Lite spec
+        vega_spec = request.vega_lite_spec.copy()
+        vega_spec["title"] = request.chart_title
+
         # Create Altair chart from Vega-Lite spec
-        chart = alt.Chart.from_dict(request.vega_lite_spec)
+        chart = alt.Chart.from_dict(vega_spec)
 
         # Save the chart as PNG
         chart.save(str(output_path))
