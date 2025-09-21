@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 # Server configuration - must be set via set_default_output_dir()
 _DEFAULT_OUTPUT_DIR = None
+_DEFAULT_OUTPUT_FORMAT = "svg"
 
 
 class ChartRequest(BaseModel):
@@ -24,12 +25,26 @@ class ChartRequest(BaseModel):
     output_path: Optional[str] = Field(
         default=None, description="Output file path (defaults to server config)"
     )
+    output_format: Optional[str] = Field(
+        default=None,
+        description="Output format: 'png', 'svg', or 'pdf' (defaults to server config)",
+    )
 
 
 def set_default_output_dir(output_dir: Path) -> None:
     """Set the default output directory for chart generation."""
     global _DEFAULT_OUTPUT_DIR
     _DEFAULT_OUTPUT_DIR = output_dir
+
+
+def set_default_output_format(output_format: str) -> None:
+    """Set the default output format for chart generation."""
+    global _DEFAULT_OUTPUT_FORMAT
+    if output_format.lower() not in ["png", "svg", "pdf"]:
+        raise ValueError(
+            f"Invalid output format: {output_format}. Must be 'png', 'svg', or 'pdf'."
+        )
+    _DEFAULT_OUTPUT_FORMAT = output_format.lower()
 
 
 def get_default_output_dir() -> Path:
@@ -39,6 +54,11 @@ def get_default_output_dir() -> Path:
             "Default output directory not set. Server must be started with --output-dir parameter."
         )
     return _DEFAULT_OUTPUT_DIR
+
+
+def get_default_output_format() -> str:
+    """Get the current default output format."""
+    return _DEFAULT_OUTPUT_FORMAT
 
 
 def sanitize_chart_title(title: str) -> str:
@@ -60,7 +80,7 @@ def get_tool_definitions() -> list[Tool]:
     return [
         Tool(
             name="generate_chart",
-            description="Generate a PNG chart from a Vega-Lite specification",
+            description="Generate charts from a Vega-Lite specification in PNG, SVG, or PDF format",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -75,6 +95,11 @@ def get_tool_definitions() -> list[Tool]:
                     "output_path": {
                         "type": "string",
                         "description": "Optional output file path (defaults to server config)",
+                    },
+                    "output_format": {
+                        "type": "string",
+                        "enum": ["png", "svg", "pdf"],
+                        "description": "Output format: 'png', 'svg', or 'pdf' (defaults to server config, currently 'svg')",
                     },
                 },
                 "required": ["chart_title", "vega_lite_spec"],

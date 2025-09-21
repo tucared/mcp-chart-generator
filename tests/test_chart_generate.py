@@ -1,18 +1,24 @@
 #!/usr/bin/env python3
 """
-Simple test script to verify chart generation functionality.
+Comprehensive test script to verify chart generation functionality across all formats.
 """
 
-from mcp_chart_generator.tools import (
-    ChartRequest,
-    sanitize_chart_title,
-    set_default_output_dir,
-    get_default_output_dir,
-)
-import altair as alt
+import asyncio
 import json
 import tempfile
+import unittest
 from pathlib import Path
+
+import altair as alt
+
+from mcp_chart_generator.server import call_tool
+from mcp_chart_generator.tools import (
+    ChartRequest,
+    get_default_output_format,
+    sanitize_chart_title,
+    set_default_output_dir,
+    set_default_output_format,
+)
 
 # Sample Vega-Lite specification with embedded data
 sample_spec = {
@@ -39,85 +45,73 @@ sample_spec = {
 }
 
 
-def test_basic_chart_generation():
-    """Test basic chart generation functionality."""
-    try:
-        # Create chart from spec
-        chart = alt.Chart.from_dict(sample_spec)
+class ChartGenerationTests(unittest.TestCase):
+    """Test suite for chart generation functionality."""
 
-        # Test saving
-        chart.save("tests/test_chart.png")
-        print("✅ Basic chart generation test passed!")
-        return True
-    except Exception as e:
-        print(f"❌ Basic chart generation test failed: {e}")
-        return False
+    def setUp(self):
+        """Set up test environment."""
+        self.temp_dir = tempfile.mkdtemp()
+        self.temp_path = Path(self.temp_dir)
+        set_default_output_dir(self.temp_path)
+        set_default_output_format("svg")  # Set default to SVG
 
+    def tearDown(self):
+        """Clean up test environment."""
+        import shutil
 
-def test_chart_request_validation():
-    """Test ChartRequest model validation."""
-    try:
-        # Valid request
-        ChartRequest(
-            chart_title="Test Chart",
-            vega_lite_spec=sample_spec,
-            output_path="tests/test_output.png",
-        )
-        print("✅ ChartRequest validation test passed!")
-        return True
-    except Exception as e:
-        print(f"❌ ChartRequest validation test failed: {e}")
-        return False
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-
-def test_output_directory_setup():
-    """Test that output directory configuration works correctly."""
-    try:
-        # Get original output dir (may be None initially)
+    def test_basic_chart_generation(self):
+        """Test basic chart generation functionality."""
         try:
-            original_dir = get_default_output_dir()
-        except RuntimeError:
-            original_dir = None
+            # Create chart from spec
+            chart = alt.Chart.from_dict(sample_spec)
 
-        # Create a temporary directory for testing
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
+            # Test saving
+            test_path = self.temp_path / "test_chart.png"
+            chart.save(str(test_path))
+            self.assertTrue(test_path.exists())
+            print("✅ Basic chart generation test passed!")
+        except Exception as e:
+            self.fail(f"Basic chart generation test failed: {e}")
 
-            # Set new output directory
-            set_default_output_dir(temp_path)
+    def test_chart_request_validation(self):
+        """Test ChartRequest model validation."""
+        try:
+            # Valid request
+            request = ChartRequest(
+                chart_title="Test Chart",
+                vega_lite_spec=sample_spec,
+                output_path="tests/test_output.png",
+                output_format="png",
+            )
+            self.assertEqual(request.chart_title, "Test Chart")
+            self.assertEqual(request.output_format, "png")
+            print("✅ ChartRequest validation test passed!")
+        except Exception as e:
+            self.fail(f"ChartRequest validation test failed: {e}")
 
-            # Verify it was set correctly
-            current_dir = get_default_output_dir()
-            assert current_dir == temp_path, f"Expected {temp_path}, got {current_dir}"
+    def test_output_format_configuration(self):
+        """Test output format configuration functions."""
+        try:
+            # Test default format
+            self.assertEqual(get_default_output_format(), "svg")
 
-            # Test that the directory is used for default chart generation
-            # This simulates what happens in server.py when no output_path is provided
-            default_dir = get_default_output_dir()
-            default_dir.mkdir(exist_ok=True)
-            output_path = default_dir / "chart.png"
+            # Test setting valid formats
+            for format_name in ["png", "svg", "pdf"]:
+                set_default_output_format(format_name)
+                self.assertEqual(get_default_output_format(), format_name)
 
-            # Ensure output directory exists (simulating server.py logic)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
+            # Test invalid format
+            with self.assertRaises(ValueError):
+                set_default_output_format("invalid")
 
-            # Verify the path is in our temp directory
-            assert output_path.parent == temp_path
-            assert output_path.name == "chart.png"
+            print("✅ Output format configuration test passed!")
+        except Exception as e:
+            self.fail(f"Output format configuration test failed: {e}")
 
-        # Restore original directory (if there was one)
-        if original_dir is not None:
-            set_default_output_dir(original_dir)
-
-        print("✅ Output directory setup test passed!")
-        return True
-    except Exception as e:
-        print(f"❌ Output directory setup test failed: {e}")
-        return False
-
-
-def test_chart_title_sanitization():
-    """Test that chart title sanitization works correctly."""
-    try:
-        # Test various problematic titles
+    def test_chart_title_sanitization(self):
+        """Test that chart title sanitization works correctly."""
         test_cases = [
             ("Normal Title", "Normal_Title"),
             ("Title with spaces", "Title_with_spaces"),
@@ -130,198 +124,285 @@ def test_chart_title_sanitization():
 
         for input_title, expected in test_cases:
             result = sanitize_chart_title(input_title)
-            assert result == expected, (
-                f"Expected '{expected}', got '{result}' for input '{input_title}'"
+            self.assertEqual(
+                result,
+                expected,
+                f"Expected '{expected}', got '{result}' for input '{input_title}'",
             )
 
         print("✅ Chart title sanitization test passed!")
-        return True
-    except Exception as e:
-        print(f"❌ Chart title sanitization test failed: {e}")
-        return False
 
+    async def test_svg_format_generation(self):
+        """Test SVG format chart generation."""
+        chart_title = "Test SVG Chart"
+        response = await call_tool(
+            "generate_chart",
+            {
+                "chart_title": chart_title,
+                "vega_lite_spec": sample_spec,
+                "output_format": "svg",
+            },
+        )
 
-def test_chart_title_integration():
-    """Test that chart title is properly integrated into directory structure."""
-    try:
-        # Create a temporary directory for testing
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
+        # Verify response
+        self.assertEqual(len(response), 1)
+        self.assertIn("SVG format", response[0].text)
 
-            # Set output directory
-            set_default_output_dir(temp_path)
+        # Verify files exist
+        safe_title = sanitize_chart_title(chart_title)
+        chart_dir = self.temp_path / safe_title
+        svg_file = chart_dir / "graph.svg"
+        json_file = chart_dir / "vega_lite_spec.json"
 
-            # Test chart title integration (simulating server.py logic)
-            chart_title = "My Test Chart!"
+        self.assertTrue(svg_file.exists(), f"SVG file should exist: {svg_file}")
+        self.assertTrue(json_file.exists(), f"JSON file should exist: {json_file}")
+        self.assertGreater(svg_file.stat().st_size, 0, "SVG file should not be empty")
+
+        print("✅ SVG format generation test passed!")
+
+    async def test_png_format_generation(self):
+        """Test PNG format chart generation."""
+        chart_title = "Test PNG Chart"
+        response = await call_tool(
+            "generate_chart",
+            {
+                "chart_title": chart_title,
+                "vega_lite_spec": sample_spec,
+                "output_format": "png",
+            },
+        )
+
+        # Verify response
+        self.assertEqual(len(response), 1)
+        self.assertIn("PNG format", response[0].text)
+
+        # Verify files exist
+        safe_title = sanitize_chart_title(chart_title)
+        chart_dir = self.temp_path / safe_title
+        png_file = chart_dir / "graph.png"
+        json_file = chart_dir / "vega_lite_spec.json"
+
+        self.assertTrue(png_file.exists(), f"PNG file should exist: {png_file}")
+        self.assertTrue(json_file.exists(), f"JSON file should exist: {json_file}")
+        self.assertGreater(png_file.stat().st_size, 0, "PNG file should not be empty")
+
+        print("✅ PNG format generation test passed!")
+
+    async def test_pdf_format_generation(self):
+        """Test PDF format chart generation."""
+        chart_title = "Test PDF Chart"
+        response = await call_tool(
+            "generate_chart",
+            {
+                "chart_title": chart_title,
+                "vega_lite_spec": sample_spec,
+                "output_format": "pdf",
+            },
+        )
+
+        # Verify response
+        self.assertEqual(len(response), 1)
+        self.assertIn("PDF format", response[0].text)
+
+        # Verify files exist
+        safe_title = sanitize_chart_title(chart_title)
+        chart_dir = self.temp_path / safe_title
+        pdf_file = chart_dir / "graph.pdf"
+        json_file = chart_dir / "vega_lite_spec.json"
+
+        self.assertTrue(pdf_file.exists(), f"PDF file should exist: {pdf_file}")
+        self.assertTrue(json_file.exists(), f"JSON file should exist: {json_file}")
+        self.assertGreater(pdf_file.stat().st_size, 0, "PDF file should not be empty")
+
+        print("✅ PDF format generation test passed!")
+
+    async def test_default_format_behavior(self):
+        """Test that default format (SVG) is used when no format specified."""
+        chart_title = "Default Format Chart"
+        response = await call_tool(
+            "generate_chart",
+            {
+                "chart_title": chart_title,
+                "vega_lite_spec": sample_spec,
+                # Note: no output_format specified
+            },
+        )
+
+        # Verify response mentions SVG (the default)
+        self.assertEqual(len(response), 1)
+        self.assertIn("SVG format", response[0].text)
+
+        # Verify SVG file exists
+        safe_title = sanitize_chart_title(chart_title)
+        chart_dir = self.temp_path / safe_title
+        svg_file = chart_dir / "graph.svg"
+
+        self.assertTrue(svg_file.exists(), f"Default SVG file should exist: {svg_file}")
+
+        print("✅ Default format behavior test passed!")
+
+    async def test_vega_lite_json_content(self):
+        """Test that Vega-Lite JSON contains correct content."""
+        chart_title = "JSON Content Test"
+        await call_tool(
+            "generate_chart",
+            {
+                "chart_title": chart_title,
+                "vega_lite_spec": sample_spec,
+                "output_format": "svg",
+            },
+        )
+
+        # Read and verify JSON content
+        safe_title = sanitize_chart_title(chart_title)
+        chart_dir = self.temp_path / safe_title
+        json_file = chart_dir / "vega_lite_spec.json"
+
+        with open(json_file, "r", encoding="utf-8") as f:
+            saved_spec = json.load(f)
+
+        # Verify content
+        self.assertEqual(saved_spec["title"], chart_title)
+        self.assertEqual(saved_spec["mark"], "bar")
+        self.assertIn("data", saved_spec)
+        self.assertEqual(len(saved_spec["data"]["values"]), 9)
+
+        print("✅ Vega-Lite JSON content test passed!")
+
+    async def test_all_formats_comprehensive(self):
+        """Comprehensive test of all formats with file size verification."""
+        formats = ["svg", "png", "pdf"]
+        file_info = {}
+
+        for format_name in formats:
+            chart_title = f"Comprehensive_{format_name.upper()}_Test"
+            await call_tool(
+                "generate_chart",
+                {
+                    "chart_title": chart_title,
+                    "vega_lite_spec": sample_spec,
+                    "output_format": format_name,
+                },
+            )
+
+            # Check files
             safe_title = sanitize_chart_title(chart_title)
+            chart_dir = self.temp_path / safe_title
+            chart_file = chart_dir / f"graph.{format_name}"
+            json_file = chart_dir / "vega_lite_spec.json"
 
-            default_dir = get_default_output_dir()
-            chart_dir = default_dir / safe_title
-            chart_dir.mkdir(parents=True, exist_ok=True)
-            output_path = chart_dir / "graph.png"
-
-            # Verify directory structure
-            assert chart_dir.exists(), f"Chart directory {chart_dir} should exist"
-            assert chart_dir.name == "My_Test_Chart", (
-                f"Expected 'My_Test_Chart', got '{chart_dir.name}'"
+            self.assertTrue(
+                chart_file.exists(), f"{format_name.upper()} file should exist"
             )
-            assert output_path.name == "graph.png", (
-                f"Expected 'graph.png', got '{output_path.name}'"
+            self.assertTrue(
+                json_file.exists(), f"JSON file should exist for {format_name}"
             )
 
-        print("✅ Chart title integration test passed!")
-        return True
-    except Exception as e:
-        print(f"❌ Chart title integration test failed: {e}")
-        return False
+            # Store file sizes for comparison
+            file_info[format_name] = {
+                "chart_size": chart_file.stat().st_size,
+                "json_size": json_file.stat().st_size,
+            }
+
+        # Verify all formats generated files
+        self.assertEqual(len(file_info), 3)
+
+        # SVG should generally be smaller than PNG/PDF for simple charts
+        self.assertGreater(file_info["png"]["chart_size"], 0)
+        self.assertGreater(file_info["svg"]["chart_size"], 0)
+        self.assertGreater(file_info["pdf"]["chart_size"], 0)
+
+        print("✅ Comprehensive all formats test passed!")
+        print(f"  SVG: {file_info['svg']['chart_size']} bytes")
+        print(f"  PNG: {file_info['png']['chart_size']} bytes")
+        print(f"  PDF: {file_info['pdf']['chart_size']} bytes")
 
 
-def test_vega_lite_json_saving():
-    """Test that Vega-Lite specification is saved as JSON alongside the PNG."""
+async def run_async_tests():
+    """Run all async tests."""
+    test_instance = ChartGenerationTests()
+    test_instance.setUp()
+
     try:
-        # Create a temporary directory for testing
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-
-            # Set output directory
-            set_default_output_dir(temp_path)
-
-            # Simulate the server.py logic for saving JSON
-            chart_title = "Test JSON Chart"
-            safe_title = sanitize_chart_title(chart_title)
-
-            default_dir = get_default_output_dir()
-            chart_dir = default_dir / safe_title
-            chart_dir.mkdir(parents=True, exist_ok=True)
-            output_path = chart_dir / "graph.png"
-
-            # Create modified spec with title (simulating server.py logic)
-            vega_spec = sample_spec.copy()
-            vega_spec["title"] = chart_title
-
-            # Save the Vega-Lite spec as JSON (simulating server.py logic)
-            json_path = output_path.parent / "vega_lite_spec.json"
-            with open(json_path, "w", encoding="utf-8") as f:
-                json.dump(vega_spec, f, indent=2, ensure_ascii=False)
-
-            # Verify JSON file exists and has correct content
-            assert json_path.exists(), f"JSON file {json_path} should exist"
-            assert json_path.name == "vega_lite_spec.json", (
-                f"Expected 'vega_lite_spec.json', got '{json_path.name}'"
-            )
-
-            # Verify JSON content
-            with open(json_path, "r", encoding="utf-8") as f:
-                saved_spec = json.load(f)
-
-            assert saved_spec["title"] == chart_title, (
-                f"Expected title '{chart_title}', got '{saved_spec.get('title')}'"
-            )
-            assert saved_spec["mark"] == "bar", (
-                f"Expected mark 'bar', got '{saved_spec.get('mark')}'"
-            )
-            assert "data" in saved_spec, "Saved spec should contain data"
-
-        print("✅ Vega-Lite JSON saving test passed!")
+        await test_instance.test_svg_format_generation()
+        await test_instance.test_png_format_generation()
+        await test_instance.test_pdf_format_generation()
+        await test_instance.test_default_format_behavior()
+        await test_instance.test_vega_lite_json_content()
+        await test_instance.test_all_formats_comprehensive()
+        print("\n🎉 All async tests passed!")
         return True
     except Exception as e:
-        print(f"❌ Vega-Lite JSON saving test failed: {e}")
+        print(f"\n❌ Async test failed: {e}")
         return False
+    finally:
+        test_instance.tearDown()
 
 
-def test_full_chart_generation_with_json():
-    """Test complete chart generation workflow that creates both PNG and JSON files."""
+def run_sync_tests():
+    """Run all synchronous tests."""
     try:
-        # Create a temporary directory for testing
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
+        suite = unittest.TestLoader().loadTestsFromTestCase(ChartGenerationTests)
+        # Run only sync tests (exclude async methods)
+        sync_tests = [
+            test
+            for test in suite
+            if not test._testMethodName.startswith("test_")
+            or test._testMethodName
+            in [
+                "test_basic_chart_generation",
+                "test_chart_request_validation",
+                "test_output_format_configuration",
+                "test_chart_title_sanitization",
+            ]
+        ]
 
-            # Set output directory
-            set_default_output_dir(temp_path)
+        if sync_tests:
+            runner = unittest.TextTestRunner(verbosity=0)
+            result = runner.run(unittest.TestSuite(sync_tests))
+            return result.wasSuccessful()
+        else:
+            # Run sync tests manually
+            test_instance = ChartGenerationTests()
+            test_instance.setUp()
+            try:
+                test_instance.test_basic_chart_generation()
+                test_instance.test_chart_request_validation()
+                test_instance.test_output_format_configuration()
+                test_instance.test_chart_title_sanitization()
+                print("✅ All sync tests passed!")
+                return True
+            except Exception as e:
+                print(f"❌ Sync test failed: {e}")
+                return False
+            finally:
+                test_instance.tearDown()
 
-            # Simulate the complete server.py call_tool logic
-            chart_title = "Integration Test Chart"
-            safe_title = sanitize_chart_title(chart_title)
-
-            # Set up output path (following server.py logic)
-            default_dir = get_default_output_dir()
-            chart_dir = default_dir / safe_title
-            chart_dir.mkdir(parents=True, exist_ok=True)
-            output_path = chart_dir / "graph.png"
-
-            # Ensure output directory exists
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-
-            # Add title to Vega-Lite spec (following server.py logic)
-            vega_spec = sample_spec.copy()
-            vega_spec["title"] = chart_title
-
-            # Create Altair chart from Vega-Lite spec
-            chart = alt.Chart.from_dict(vega_spec)
-
-            # Save the chart as PNG
-            chart.save(str(output_path))
-
-            # Save the Vega-Lite spec as JSON (following server.py logic)
-            json_path = output_path.parent / "vega_lite_spec.json"
-            with open(json_path, "w", encoding="utf-8") as f:
-                json.dump(vega_spec, f, indent=2, ensure_ascii=False)
-
-            # Verify both files exist
-            assert output_path.exists(), f"PNG file {output_path} should exist"
-            assert json_path.exists(), f"JSON file {json_path} should exist"
-
-            # Verify file names
-            assert output_path.name == "graph.png", (
-                f"Expected 'graph.png', got '{output_path.name}'"
-            )
-            assert json_path.name == "vega_lite_spec.json", (
-                f"Expected 'vega_lite_spec.json', got '{json_path.name}'"
-            )
-
-            # Verify they're in the same directory
-            assert output_path.parent == json_path.parent, (
-                "PNG and JSON files should be in the same directory"
-            )
-
-            # Verify directory name matches sanitized chart title
-            assert output_path.parent.name == safe_title, (
-                f"Expected directory '{safe_title}', got '{output_path.parent.name}'"
-            )
-
-            # Verify JSON content matches what was saved
-            with open(json_path, "r", encoding="utf-8") as f:
-                saved_spec = json.load(f)
-
-            assert saved_spec["title"] == chart_title, (
-                f"Expected title '{chart_title}', got '{saved_spec.get('title')}'"
-            )
-            assert saved_spec["mark"] == sample_spec["mark"], (
-                f"Expected mark '{sample_spec['mark']}', got '{saved_spec.get('mark')}'"
-            )
-            assert saved_spec["data"] == sample_spec["data"], (
-                "JSON data should match original spec data"
-            )
-
-        print("✅ Full chart generation with JSON test passed!")
-        return True
     except Exception as e:
-        print(f"❌ Full chart generation with JSON test failed: {e}")
+        print(f"❌ Error running sync tests: {e}")
         return False
 
 
 if __name__ == "__main__":
-    print("Running chart generation tests...")
+    print("🚀 Running comprehensive chart generation tests...")
+    print("=" * 60)
 
-    test1 = test_chart_request_validation()
-    test2 = test_basic_chart_generation()
-    test3 = test_output_directory_setup()
-    test4 = test_chart_title_sanitization()
-    test5 = test_chart_title_integration()
-    test6 = test_vega_lite_json_saving()
-    test7 = test_full_chart_generation_with_json()
+    # Run synchronous tests
+    print("\n📋 Running synchronous tests...")
+    sync_success = run_sync_tests()
 
-    if test1 and test2 and test3 and test4 and test5 and test6 and test7:
-        print("\n🎉 All tests passed! The MCP server should work correctly.")
+    # Run asynchronous tests
+    print("\n🔄 Running asynchronous tests...")
+    async_success = asyncio.run(run_async_tests())
+
+    # Summary
+    print("\n" + "=" * 60)
+    if sync_success and async_success:
+        print("🎉 All tests passed! The MCP server supports all formats correctly.")
+        print("\nSupported formats:")
+        print("  • SVG (default) - Vector format, smallest file size")
+        print("  • PNG - Raster format, good for embedding")
+        print("  • PDF - Vector format with document structure")
     else:
-        print("\n💥 Some tests failed. Check the implementation.")
+        print("💥 Some tests failed. Check the implementation.")
+        exit(1)

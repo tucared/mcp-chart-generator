@@ -5,7 +5,8 @@ generate charts that are saved to file artefacts for versionning and auditing ca
 
 This MCP server is built in Python using Vega-Altair library, so it can use Vega-Lite syntax.
 
-A single tool call creates a folder where are saved : Input data, Vega-Lite specification and output chart.
+A single tool call creates a folder where are saved : Input data, Vega-Lite specification and output chart
+(SVG, PNG and PDF supported).
 
 ## Installation & Configuration
 
@@ -30,7 +31,10 @@ Add this to your MCP configuration file:
 }
 ```
 
-**Note**: The `--output-dir` parameter is required and specifies where generated charts will be saved.
+**Configuration Options:**
+
+- `--output-dir` (required): Directory where generated charts will be saved
+- `--output-format` (optional): Default output format - `svg` (default), `png`, or `pdf`
 
 ### Alternative: Local Development Setup
 
@@ -71,7 +75,17 @@ For local development or if you prefer to clone the repository:
    ```
 
 **Note**: Replace `/absolute/path/to/mcp-chart-generator` with your actual path and
-`/path/to/your/charts` with your desired output directory. The `--output-dir` parameter is required.
+`/path/to/your/charts` with your desired output directory. Use `--output-format` to set the default format.
+
+## Usage
+
+### Generated Files
+
+Each chart generation creates:
+
+- Chart file: `graph.[format]` (svg/png/pdf)
+- Specification: `vega_lite_spec.json`
+- Directory: Named after sanitized chart title
 
 ## Contributing
 
@@ -98,12 +112,6 @@ To verify the MCP server functionality, run the test:
 ```shell
 uv run tests/test_chart_generate.py
 ```
-
-The test verify:
-
-- Basic chart generation from Vega-Lite specifications
-- Request model validation
-- PNG export functionality
 
 ## Acknowledgment
 
