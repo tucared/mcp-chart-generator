@@ -5,6 +5,7 @@ MCP Chart Generator Server
 A Model Context Protocol server that generates PNG charts from Vega-Lite specifications.
 """
 
+import argparse
 import logging
 import sys
 from pathlib import Path
@@ -16,8 +17,8 @@ from mcp.types import TextContent
 
 from .tools import (
     ChartRequest,
-    DEFAULT_OUTPUT_DIR,
     get_tool_definitions,
+    set_default_output_dir,
 )
 
 # Configure logging to stderr to avoid interfering with MCP communication
@@ -52,8 +53,11 @@ async def call_tool(name: str, arguments: dict):
         if request.output_path:
             output_path = Path(request.output_path)
         else:
-            DEFAULT_OUTPUT_DIR.mkdir(exist_ok=True)
-            output_path = DEFAULT_OUTPUT_DIR / "chart.png"
+            from .tools import get_default_output_dir
+
+            default_dir = get_default_output_dir()
+            default_dir.mkdir(exist_ok=True)
+            output_path = default_dir / "chart.png"
 
         # Ensure output directory exists
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -81,6 +85,20 @@ async def call_tool(name: str, arguments: dict):
 def main():
     """Main entry point for the server."""
     import asyncio
+
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="MCP Chart Generator Server")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        required=True,
+        help="Output directory for generated charts",
+    )
+    args = parser.parse_args()
+
+    # Set the output directory
+    set_default_output_dir(Path(args.output_dir))
+    logger.info(f"Using output directory: {args.output_dir}")
 
     async def run_server():
         async with stdio_server() as (read_stream, write_stream):

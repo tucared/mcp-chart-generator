@@ -21,12 +21,16 @@ Add this to your MCP configuration file:
       "args": [
         "--from",
         "git+https://github.com/tucared/mcp-chart-generator",
-        "mcp-chart-generator"
+        "mcp-chart-generator",
+        "--output-dir",
+        "/path/to/your/charts"
       ]
     }
   }
 }
 ```
+
+**Note**: The `--output-dir` parameter is required and specifies where generated charts will be saved.
 
 ### Alternative: Local Development Setup
 
@@ -56,7 +60,9 @@ For local development or if you prefer to clone the repository:
             "--directory",
             "/absolute/path/to/mcp-chart-generator",
             "run",
-            "mcp-chart-generator"
+            "mcp-chart-generator",
+            "--output-dir",
+            "/path/to/your/charts"
           ],
          "cwd": "/absolute/path/to/mcp-chart-generator"
        }
@@ -64,7 +70,8 @@ For local development or if you prefer to clone the repository:
    }
    ```
 
-**Note**: Replace `/absolute/path/to/mcp-chart-generator` with your actual path.
+**Note**: Replace `/absolute/path/to/mcp-chart-generator` with your actual path and
+`/path/to/your/charts` with your desired output directory. The `--output-dir` parameter is required.
 
 ## Contributing
 

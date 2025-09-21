@@ -7,8 +7,8 @@ from typing import Optional
 from mcp.types import Tool
 from pydantic import BaseModel, Field
 
-# Server configuration
-DEFAULT_OUTPUT_DIR = Path.cwd() / "tests"
+# Server configuration - must be set via set_default_output_dir()
+_DEFAULT_OUTPUT_DIR = None
 
 
 class ChartRequest(BaseModel):
@@ -20,6 +20,21 @@ class ChartRequest(BaseModel):
     output_path: Optional[str] = Field(
         default=None, description="Output file path (defaults to server config)"
     )
+
+
+def set_default_output_dir(output_dir: Path) -> None:
+    """Set the default output directory for chart generation."""
+    global _DEFAULT_OUTPUT_DIR
+    _DEFAULT_OUTPUT_DIR = output_dir
+
+
+def get_default_output_dir() -> Path:
+    """Get the current default output directory."""
+    if _DEFAULT_OUTPUT_DIR is None:
+        raise RuntimeError(
+            "Default output directory not set. Server must be started with --output-dir parameter."
+        )
+    return _DEFAULT_OUTPUT_DIR
 
 
 def get_tool_definitions() -> list[Tool]:
