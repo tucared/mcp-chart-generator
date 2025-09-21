@@ -3,7 +3,11 @@ name = "mcp-chart-generator"
 version = "0.1.0"
 requires-python = ">=3.13.5"
 dependencies = [
+    "altair>=5.5.0",
     "mcp[cli]>=1.14.1",
     "pre-commit>=4.3.0",
+    "selenium>=4.35.0",
     "ty>=0.0.1a21",
+    "vl-convert-python>=1.8.0",
+    "webdriver-manager>=4.0.2",
 ]

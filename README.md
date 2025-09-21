@@ -7,12 +7,22 @@ This MCP server is built in Python using Vega-Altair library, so it can use Vega
 
 A single tool call creates a folder where are saved : Input data, Vega-Lite specification and output chart.
 
-## Editing the server
+## Contributing
 
-Install pre-commits
+### Setup
+
+Install pre-commits:
 
 ```shell
 uv run pre-commit install
+```
+
+### Inspecting
+
+To inspect the MCP server, use the dedicated tool:
+
+```shell
+npx @modelcontextprotocol/inspector uv run server.py
 ```
 
 ## Acknowledgment
