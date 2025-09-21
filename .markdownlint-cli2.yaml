@@ -24,6 +24,6 @@ config:
     style: "asterisk"
 
 globs:
-  - "!.venv/*"
+  - "!.venv/**"
 
 fix: true
