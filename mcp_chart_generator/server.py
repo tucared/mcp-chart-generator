@@ -81,26 +81,51 @@ async def call_tool(name: str, arguments: dict):
         vega_spec = request.vega_lite_spec.copy()
         vega_spec["title"] = request.chart_title
 
-        # Create Altair chart from Vega-Lite spec
+        # Extract data if embedded and save separately
+        data_path = None
+        data_values = None
+        if "data" in vega_spec and "values" in vega_spec["data"]:
+            # Extract the data values
+            data_values = vega_spec["data"]["values"]
+
+            # Save data as separate JSON file
+            data_path = output_path.parent / "data.json"
+            with open(data_path, "w", encoding="utf-8") as f:
+                json.dump(data_values, f, indent=2, ensure_ascii=False)
+
+        # Create Altair chart from Vega-Lite spec using original embedded data
+        # This ensures the chart renders properly during save()
         chart = alt.Chart.from_dict(vega_spec)
 
         # Save the chart in the specified format
         chart.save(str(output_path))
 
-        # Save the Vega-Lite spec as JSON
-        json_path = output_path.parent / "vega_lite_spec.json"
-        with open(json_path, "w", encoding="utf-8") as f:
-            json.dump(vega_spec, f, indent=2, ensure_ascii=False)
+        # Save the Vega-Lite config as JSON (renamed from spec)
+        # Create a config version with relative path for portability
+        config_path = output_path.parent / "vega_lite_config.json"
+        config_spec = vega_spec.copy()
+        if data_path:
+            # Replace embedded data with relative path reference in the saved config
+            config_spec["data"] = {"url": "./data.json"}
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(config_spec, f, indent=2, ensure_ascii=False)
 
         logger.info(
             f"Successfully generated {output_format.upper()} chart: {output_path}"
         )
-        logger.info(f"Successfully saved Vega-Lite spec: {json_path}")
+        logger.info(f"Successfully saved Vega-Lite config: {config_path}")
+        if data_path:
+            logger.info(f"Successfully saved data: {data_path}")
+
+        # Build response text
+        response_text = f"Chart successfully generated and saved to: {output_path.absolute()} ({output_format.upper()} format)\nVega-Lite configuration saved to: {config_path.absolute()}"
+        if data_path:
+            response_text += f"\nData extracted and saved to: {data_path.absolute()}"
 
         return [
             TextContent(
                 type="text",
-                text=f"Chart successfully generated and saved to: {output_path.absolute()} ({output_format.upper()} format)\nVega-Lite specification saved to: {json_path.absolute()}",
+                text=response_text,
             )
         ]
 

@@ -80,7 +80,7 @@ def get_tool_definitions() -> list[Tool]:
     return [
         Tool(
             name="generate_chart",
-            description="Generate charts from a Vega-Lite specification in PNG, SVG, or PDF format",
+            description="Generate charts from a Vega-Lite specification in PNG, SVG, or PDF format. Automatically separates embedded data into data.json and creates vega_lite_config.json for better token efficiency.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -90,7 +90,7 @@ def get_tool_definitions() -> list[Tool]:
                     },
                     "vega_lite_spec": {
                         "type": "object",
-                        "description": "Complete Vega-Lite specification including data",
+                        "description": "Complete Vega-Lite specification including data. If data.values is present, it will be extracted to data.json and replaced with data.url reference.",
                     },
                     "output_path": {
                         "type": "string",
