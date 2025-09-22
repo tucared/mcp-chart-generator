@@ -8,6 +8,33 @@ This MCP server is built in Python using Vega-Altair library, so it can use Vega
 A single tool call creates a folder where are saved : Input data, Vega-Lite specification and output chart
 (SVG, PNG and PDF supported).
 
+## Architecture
+
+The following diagram shows the typical interaction flow between an MCP client (like Claude Code) and multiple MCP
+servers for data-driven chart generation:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Client as MCP Client<br/>(Claude Code)
+    participant DataMCP as Data MCP Server<br/>(Snowflake/dbt MCP)
+    participant ChartMCP as Chart MCP Server<br/>(mcp-chart-generator)
+    participant FileSystem as Local File System
+
+    User->>Client: "Create a chart showing sales by region"
+
+    Client->>DataMCP: SQL query for sales data
+    DataMCP->>Client: Returns data results
+
+    Client->>ChartMCP: Vega-Lite config with inline data
+    Note over ChartMCP: Generates chart using<br/>Vega-Altair library
+
+    ChartMCP->>FileSystem: Save chart files<br/>(graph.svg, vega_lite_spec.json)
+    ChartMCP->>Client: Return file location path
+
+    Client->>User: Chart created at: /path/to/charts/chart_title/
+```
+
 ## Installation & Configuration
 
 ### Using uvx (Recommended)
