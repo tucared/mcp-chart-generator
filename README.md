@@ -106,12 +106,24 @@ For local development or if you prefer to clone the repository:
 
 ## Usage
 
+### Available Tools
+
+The MCP server provides the following tools for chart management:
+
+- `create_chart` - Create a new chart from Vega-Lite specification
+- `list_charts` - List all available charts
+- `get_chart_config` - Retrieve chart configuration
+- `get_chart_data` - Retrieve chart data
+- `set_chart_config` - Update chart configuration and regenerate chart
+- `set_chart_data` - Update chart data and regenerate chart
+
 ### Generated Files
 
 Each chart generation creates:
 
 - Chart file: `graph.[format]` (svg/png/pdf)
-- Specification: `vega_lite_spec.json`
+- Configuration: `vega_lite_config.json`
+- Data: `data.json`
 - Directory: Named after sanitized chart title
 
 ## Contributing

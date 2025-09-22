@@ -61,6 +61,19 @@ def get_default_output_format() -> str:
     return _DEFAULT_OUTPUT_FORMAT
 
 
+def get_chart_directory(chart_name: str) -> Path:
+    """Get the directory path for a chart by name."""
+    sanitized_name = sanitize_chart_title(chart_name)
+    return get_default_output_dir() / sanitized_name
+
+
+def chart_exists(chart_name: str) -> bool:
+    """Check if a chart exists by verifying its directory and config file."""
+    chart_dir = get_chart_directory(chart_name)
+    config_file = chart_dir / "vega_lite_config.json"
+    return chart_dir.exists() and config_file.exists()
+
+
 def sanitize_chart_title(title: str) -> str:
     """Sanitize chart title for use as a directory name."""
     # Replace invalid characters with underscores
@@ -79,8 +92,8 @@ def get_tool_definitions() -> list[Tool]:
     """Get list of available MCP tools."""
     return [
         Tool(
-            name="generate_chart",
-            description="Generate charts from a Vega-Lite specification in PNG, SVG, or PDF format. Automatically separates embedded data into data.json and creates vega_lite_config.json for better token efficiency.",
+            name="create_chart",
+            description="Create charts from a Vega-Lite specification in PNG, SVG, or PDF format. Automatically separates embedded data into data.json and creates vega_lite_config.json for better token efficiency.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -104,5 +117,78 @@ def get_tool_definitions() -> list[Tool]:
                 },
                 "required": ["chart_title", "vega_lite_spec"],
             },
-        )
+        ),
+        Tool(
+            name="list_charts",
+            description="List all available charts in the output directory.",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "additionalProperties": False,
+            },
+        ),
+        Tool(
+            name="get_chart_config",
+            description="Get the Vega-Lite configuration for a specific chart.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "chart_name": {
+                        "type": "string",
+                        "description": "Name of the chart to retrieve configuration for",
+                    },
+                },
+                "required": ["chart_name"],
+            },
+        ),
+        Tool(
+            name="get_chart_data",
+            description="Get the data for a specific chart.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "chart_name": {
+                        "type": "string",
+                        "description": "Name of the chart to retrieve data for",
+                    },
+                },
+                "required": ["chart_name"],
+            },
+        ),
+        Tool(
+            name="set_chart_config",
+            description="Update the Vega-Lite configuration for a specific chart.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "chart_name": {
+                        "type": "string",
+                        "description": "Name of the chart to update configuration for",
+                    },
+                    "config": {
+                        "type": "object",
+                        "description": "New Vega-Lite configuration object",
+                    },
+                },
+                "required": ["chart_name", "config"],
+            },
+        ),
+        Tool(
+            name="set_chart_data",
+            description="Update the data for a specific chart.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "chart_name": {
+                        "type": "string",
+                        "description": "Name of the chart to update data for",
+                    },
+                    "data": {
+                        "type": "array",
+                        "description": "New data array for the chart",
+                    },
+                },
+                "required": ["chart_name", "data"],
+            },
+        ),
     ]

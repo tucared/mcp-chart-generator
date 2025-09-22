@@ -58,7 +58,7 @@ class TestChartGeneration(unittest.TestCase):
 
         # Generate chart using the tool
         response = await call_tool(
-            "generate_chart",
+            "create_chart",
             {
                 "chart_title": chart_title,
                 "vega_lite_spec": SAMPLE_SPEC,
