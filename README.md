@@ -29,7 +29,7 @@ sequenceDiagram
     Client->>ChartMCP: Vega-Lite config with inline data
     Note over ChartMCP: Generates chart using<br/>Vega-Altair library
 
-    ChartMCP->>FileSystem: Save chart files<br/>(graph.svg, vega_lite_spec.json)
+    ChartMCP->>FileSystem: Save chart files<br/>(graph.svg<br>vega_lite_config.json<br>data.json)
     ChartMCP->>Client: Return file location path
 
     Client->>User: Chart created at: /path/to/charts/chart_title/
